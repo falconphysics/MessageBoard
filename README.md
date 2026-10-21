@@ -124,6 +124,10 @@ messages". The default of 4 is fine. You can leave it alone.
 Click the **save** icon (or press **Ctrl+S** / **Cmd+S**). Apps Script saves
 automatically too, but saving makes sure.
 
+**Check the time zone.** Click the gear icon (**Project Settings**) on the left and
+make sure **Time zone** is where the frame lives. The script uses it to decide when a
+pinned date has passed.
+
 ### Step 4: Give the script permission to read the account
 
 1. In the toolbar above the code, use the dropdown that says `myFunction` (or
@@ -178,13 +182,32 @@ Send an email to the board's Gmail address from one of the approved addresses.
 | What to do | Result |
 |---|---|
 | Send a normal email | It appears on the board. The subject is ignored. |
-| Use the subject `pin`, or start the subject with `!` | The message stays at the top, with a red bar. Replies to it stay pinned. |
+| Use the subject `pin`, or start the subject with `!` | The message stays at the top, with a red bar, for up to 21 days. Replies to it stay pinned. |
+| Use the subject `Pin` followed by a date, such as `Pin 10/25` | The message stays at the top through that whole day, then disappears shortly after midnight. |
 | Use the subject `clear` | Everything sent before it is wiped. Messages sent after it stay. |
 | Archive a message in the board's inbox | It disappears from the frame. |
 
 Replies to a message update it rather than adding a second copy. Quoted text,
 signatures and "Sent from my iPhone" are removed automatically. Messages older than
-21 days are ignored.
+21 days are ignored, except ones pinned to a date that hasn't arrived yet.
+
+**Pinning to a date.** Put the date right after `Pin` in the subject. Anything after
+the date is ignored, so `Pin 10/25 Dentist` works. All of these work:
+
+| Subject | Pinned through |
+|---|---|
+| `Pin 10/25`, `Pin 10-25`, `Pin 10/25/26` | October 25 (month first, as written in the US) |
+| `Pin Oct 25`, `Pin October 25th`, `Pin 25 October` | October 25 |
+| `Pin Sat 10/25`, `Pin Saturday, Oct 25` | October 25 (the weekday is ignored when there's a date) |
+| `Pin Saturday` | The coming Saturday, or today if it is Saturday |
+| `Pin today`, `Pin tomorrow` | Today, or tomorrow |
+| `Pin 2026-10-25` | October 25, 2026 |
+
+Without a year, the script picks the nearest October 25: this year's, or next year's
+if the date is close to New Year. A date that has already passed means the message
+never shows, so check the date before sending. If the date can't be understood, the
+message is pinned with no end date, like a plain `pin`. Run `testBoard` to see how a
+subject was read. It lists each pin as, for example, `(pinned through 2026-10-25)`.
 
 ---
 
@@ -442,7 +465,7 @@ In `Code.gs`:
 | `SHARED_SECRET` | placeholder | Must match `config.h`. |
 | `ALLOWED_SENDERS` | two examples | Addresses allowed to post. Anything else is ignored. Start an entry with `@` to allow a whole domain. |
 | `MAX_MESSAGES` | `4` | How many messages are sent to the frame (up to 8). About 4 fit; the rest are counted as "+N more" in the footer. |
-| `MAX_AGE_DAYS` | `21` | Messages older than this are ignored. |
+| `MAX_AGE_DAYS` | `21` | Messages older than this are ignored, except ones pinned to a future date (`Pin 12/25`). |
 | `MAX_CHARS` | `180` | Longest message shown. Longer ones are cut at a word boundary. |
 
 ---
@@ -543,7 +566,8 @@ cd tests
 ```
 
 **The Apps Script** runs against fake Gmail inboxes. It covers `clear` (including
-messages sent after it), pins, replies and reply-header stripping. It needs
+messages sent after it), pins, dated pins and how pin dates are read, replies and
+reply-header stripping. It needs
 [Node.js](https://nodejs.org):
 
 ```bash
